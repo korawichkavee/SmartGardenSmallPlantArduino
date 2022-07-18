@@ -33,7 +33,7 @@ void loop(void) {
   Serial.print(sunlight);
   Serial.print("\n *****");
 
-  if (sunlight < 30) { // if it is dark
+  if (sunlight < 60) { // if it is dark
     digitalWrite(pump,HIGH);   //turning on
     delay(1000);   	     //milliseconds 
     digitalWrite(pump,LOW);    //turning off
