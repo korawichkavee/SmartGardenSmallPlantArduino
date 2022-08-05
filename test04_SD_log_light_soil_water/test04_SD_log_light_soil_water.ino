@@ -6,7 +6,7 @@
 Adafruit_seesaw ss;
 
 // A simple data logger for the Arduino analog pins
-#define LOG_INTERVAL  10000 // mills between entries
+#define LOG_INTERVAL  3*1000 // mills between entries
 //#define WAIT_TO_START    0 // Wait for serial input in setup()
 
 // the digital pins that connect to the LEDs
@@ -36,6 +36,14 @@ void setup() {
   Serial.begin(115200);   
   pinMode(pump,OUTPUT);   //set pin to be an output output
 
+  if (!ss.begin(0x36)) {
+    Serial.println("ERROR! seesaw not found");
+    while(1) delay(1);
+  } else {
+    Serial.print("seesaw started! version: ");
+    Serial.println(ss.getVersion(), HEX);
+  }
+
   // initialize the SD card
   Serial.print("\n Initializing SD card...");
   // see if the card is present and can be initialized:
@@ -46,33 +54,35 @@ void setup() {
   }
   Serial.println("card initialized.");
 
-  if (! SD.exists("smart_garden.txt")) {
-    // only open a new file if it doesn't exist
-    Serial.println("creating a new file");
-    logfile = SD.open("smart_garden.csv", FILE_WRITE); 
-  } else {
-    Serial.println("Same file already exists");
-    logfile = SD.open("smart_garden.txt");
-  }
-
   //Establish connection with real time clock
   Wire.begin();  
   if (!rtc.begin()) {
-    logfile.println("RTC failed");
     Serial.println("RTC failed");
   }
   delay(LOG_INTERVAL/2);
+
   //Set the time and date on the real time clock if necessary
-  //if (! rtc.isrunning()) {
-    // following line sets the RTC to the date & time this sketch was compiled
   rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  //}
-  
+  now = rtc.now();
+  char filename[] = "LOGGER00.CSV";
+  for (uint8_t i = 0; i < 100; i++) {
+    filename[6] = i/10 + '0';
+    filename[7] = i%10 + '0';
+    if (! SD.exists(filename)) {
+      // only open a new file if it doesn't exist
+      logfile = SD.open(filename, FILE_WRITE); 
+      break;  // leave the loop!
+    }
+  }
+  Serial.print("Logging to: ");
+  Serial.println(filename);
+  delay(20);
+    
   //HEADER 
   Serial.println("Date,Soil Temp (C),Soil Moisture (%),Sunlight Illumination (lux),Watering?");
   logfile.println("Date,Soil Temp (C),Soil Moisture (%),Sunlight Illumination (lux),Watering?");
   delay(LOG_INTERVAL/2);
-  now = rtc.now();
+
 }
  
 void loop() {
@@ -84,6 +94,7 @@ void loop() {
     wateredToday = 0;
     recent_water_h = 0;
   }
+  delay(20);
 
   //Collect Variables
   float soilTemp = ss.getTemp();
@@ -97,6 +108,7 @@ void loop() {
   delay(20);
 
   now = rtc.now();
+  delay(20);
   
   // log time
   logfile.print(now.year(), DEC);
@@ -111,7 +123,7 @@ void loop() {
   logfile.print(":");
   logfile.print(now.second(), DEC);
   logfile.print(",");
-  delay(100);
+  delay(20);
   Serial.print(now.year(), DEC);
   Serial.print("/");
   Serial.print(now.month(), DEC);
@@ -124,7 +136,7 @@ void loop() {
   Serial.print(":");
   Serial.print(now.second(), DEC);
   Serial.print(",");
-  delay(100);
+  delay(20);
     
   //Log variables
   logfile.print(soilTemp);
@@ -133,17 +145,18 @@ void loop() {
   logfile.print(",");
   logfile.print(sunlight);
   logfile.print(",");
-  
+  delay(20);
   Serial.print(soilTemp);
   Serial.print(",");
   Serial.print(soilMoisture);
   Serial.print(",");
   Serial.print(sunlight);
   Serial.print(",");
+  delay(20);
 
   if ((soilMoisture < wateringThreshold) && (wateredToday < 2 ) && (sunlight > 400) && (now.hour()- recent_water_h > 6 )) {
     digitalWrite(pump,HIGH);   //turning on
-    delay(30000);   	     //milliseconds 
+    delay(30*1000);   	     //milliseconds 
     digitalWrite(pump,LOW);    //turning off
     recent_water_h = now.hour();
     //record that we're watering
@@ -151,11 +164,15 @@ void loop() {
   }
   logfile.print(wateredToday);
   Serial.print(wateredToday);
-  
+  delay(20);
+
   logfile.println();
   Serial.println();
+  delay(20);
   
   //Write to SD card
-  //logfile.flush();
-  logfile.close();
+  logfile.flush();
+  //logfile.close();
+  Serial.println("data is saved");
+  delay(20);
 }
