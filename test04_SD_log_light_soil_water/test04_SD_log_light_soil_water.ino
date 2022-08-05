@@ -1,13 +1,12 @@
-#include "SD.h"
-#include <Wire.h>
-#include "RTClib.h"
+#include "SD.h" //SD card shield
+#include <Wire.h> //to communicate with I2C/TWI devices
+#include "RTClib.h" //Real Time Clock
 
 #include "Adafruit_seesaw.h"
 Adafruit_seesaw ss;
 
 // A simple data logger for the Arduino analog pins
-#define LOG_INTERVAL  5000 // mills between entries
-#define ECHO_TO_SERIAL   1 // echo data to serial port
+#define LOG_INTERVAL  10000 // mills between entries
 //#define WAIT_TO_START    0 // Wait for serial input in setup()
 
 // the digital pins that connect to the LEDs
@@ -32,18 +31,7 @@ const int chipSelect = 10;
 // the logging file
 File logfile;
 
-void error(char *str) //when something Really Bad happened, like we couldn't write to the SD card or open it
-{
-  Serial.print("error: ");
-  Serial.println(str);
-  
-  // red LED indicates error
-  digitalWrite(redLEDpin, HIGH);
-  
-  while(1);
-}
-
-void setup(void) {
+void setup() {
   // We'll send debugging information via the Serial monitor
   Serial.begin(115200);   
   pinMode(pump,OUTPUT);   //set pin to be an output output
@@ -58,50 +46,36 @@ void setup(void) {
   }
   Serial.println("card initialized.");
 
-  // create a new file
-  char filename[] = "LOGGER00.CSV";
-  for (uint8_t i = 0; i < 100; i++) {
-    filename[6] = i/10 + '0';
-    filename[7] = i%10 + '0';
-    if (! SD.exists(filename)) {
-      // only open a new file if it doesn't exist
-      logfile = SD.open(filename, FILE_WRITE); 
-      break;  // leave the loop!
-    }
+  if (! SD.exists("smart_garden.txt")) {
+    // only open a new file if it doesn't exist
+    Serial.println("creating a new file");
+    logfile = SD.open("smart_garden.csv", FILE_WRITE); 
+  } else {
+    Serial.println("Same file already exists");
+    logfile = SD.open("smart_garden.txt");
   }
-  
-  if (! logfile) {
-    error("couldnt create file");
-  }
-  
-  Serial.print("Logging to: ");
-  Serial.println(filename);
 
   //Establish connection with real time clock
   Wire.begin();  
   if (!rtc.begin()) {
     logfile.println("RTC failed");
-#if ECHO_TO_SERIAL
     Serial.println("RTC failed");
-#endif  //ECHO_TO_SERIAL
   }
-
+  delay(LOG_INTERVAL/2);
   //Set the time and date on the real time clock if necessary
-  if (! rtc.isrunning()) {
+  //if (! rtc.isrunning()) {
     // following line sets the RTC to the date & time this sketch was compiled
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  }
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  //}
   
-  //HEADER
-  logfile.println("Unix Time (s),Date,Soil Temp (C),Soil Moisture (%),Sunlight Illumination (lux),Watering?");    
-#if ECHO_TO_SERIAL
-  Serial.println("Unix Time (s),Date,Soil Temp (C),Soil Moisture (%),Sunlight Illumination (lux),Watering?");
-#endif ECHO_TO_SERIAL// attempt to write out the header to the file
-
+  //HEADER 
+  Serial.println("Date,Soil Temp (C),Soil Moisture (%),Sunlight Illumination (lux),Watering?");
+  logfile.println("Date,Soil Temp (C),Soil Moisture (%),Sunlight Illumination (lux),Watering?");
+  delay(LOG_INTERVAL/2);
   now = rtc.now();
 }
  
-void loop(void) {
+void loop() {
   //delay software
   delay((LOG_INTERVAL -1) - (millis() % LOG_INTERVAL));
 
@@ -110,12 +84,21 @@ void loop(void) {
     wateredToday = 0;
     recent_water_h = 0;
   }
+
+  //Collect Variables
+  float soilTemp = ss.getTemp();
+  delay(20);
   
+  float soilMoisture = ss.touchRead(0)*(-0.0683) + 80.512;
+  delay(20);
+
+  photocellReading = analogRead(photocellPin);  
+  sunlight = photocellReading*0.8269-80.846 ; //LUX
+  delay(20);
+
   now = rtc.now();
   
   // log time
-  logfile.print(now.unixtime());
-  logfile.print(",");
   logfile.print(now.year(), DEC);
   logfile.print("/");
   logfile.print(now.month(), DEC);
@@ -128,9 +111,7 @@ void loop(void) {
   logfile.print(":");
   logfile.print(now.second(), DEC);
   logfile.print(",");
- #if ECHO_TO_SERIAL
-  Serial.print(now.unixtime());
-  Serial.print(",");
+  delay(100);
   Serial.print(now.year(), DEC);
   Serial.print("/");
   Serial.print(now.month(), DEC);
@@ -143,19 +124,8 @@ void loop(void) {
   Serial.print(":");
   Serial.print(now.second(), DEC);
   Serial.print(",");
-#endif //ECHO_TO_SERIAL
-
- //Collect Variables
-  float soilTemp = ss.getTemp();
-  delay(20);
-  
-  float soilMoisture = ss.touchRead(0)*(-0.0683) + 80.512;
-  delay(20);
-
-  photocellReading = analogRead(photocellPin);  
-  sunlight = photocellReading*0.8269-80.846 ; //LUX
-  delay(20);
-  
+  delay(100);
+    
   //Log variables
   logfile.print(soilTemp);
   logfile.print(",");
@@ -163,42 +133,29 @@ void loop(void) {
   logfile.print(",");
   logfile.print(sunlight);
   logfile.print(",");
-#if ECHO_TO_SERIAL
+  
   Serial.print(soilTemp);
   Serial.print(",");
   Serial.print(soilMoisture);
   Serial.print(",");
   Serial.print(sunlight);
   Serial.print(",");
-#endif
 
-  if ((soilMoisture < wateringThreshold) && (wateredToday < 2 ) && (sunlight > 200) && (now.hour()- recent_water_h > 6 )) {
+  if ((soilMoisture < wateringThreshold) && (wateredToday < 2 ) && (sunlight > 400) && (now.hour()- recent_water_h > 6 )) {
     digitalWrite(pump,HIGH);   //turning on
     delay(30000);   	     //milliseconds 
     digitalWrite(pump,LOW);    //turning off
     recent_water_h = now.hour();
-  
     //record that we're watering
     ++wateredToday;
-    logfile.print(wateredToday);
-    #if ECHO_TO_SERIAL
-      Serial.print(wateredToday);
-    #endif
   }
-  else {
-    logfile.print(wateredToday);
-    #if ECHO_TO_SERIAL
-      Serial.print(wateredToday);
-    #endif
-  }
+  logfile.print(wateredToday);
+  Serial.print(wateredToday);
   
   logfile.println();
-#if ECHO_TO_SERIAL
   Serial.println();
-#endif
-  delay(50);
   
   //Write to SD card
-  logfile.flush();
-  delay(5000);
+  //logfile.flush();
+  logfile.close();
 }
