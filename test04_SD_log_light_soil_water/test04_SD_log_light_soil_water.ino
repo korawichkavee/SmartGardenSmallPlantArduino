@@ -20,7 +20,7 @@ int wateredToday = 0;
 int recent_water_h = 0;
 float soilTemp = 0; 
 float soilMoisture = 0;
-const float wateringThreshold = 20; //Value below which the garden gets watered
+const float wateringThreshold = 25; //Value below which the garden gets watered
 
 RTC_PCF8523 rtc; // define the Real Time Clock object
 DateTime now;
@@ -154,7 +154,7 @@ void loop() {
   Serial.print(",");
   delay(20);
 
-  if ((soilMoisture < wateringThreshold) && (wateredToday < 2 ) && (sunlight > 400) && (now.hour()- recent_water_h > 6 )) {
+  if ((soilMoisture < wateringThreshold) && (wateredToday < 3 ) && (sunlight > 200) && (now.hour()- recent_water_h > 4 )) {
     digitalWrite(pump,HIGH);   //turning on
     delay(30*1000);   	     //milliseconds 
     digitalWrite(pump,LOW);    //turning off
