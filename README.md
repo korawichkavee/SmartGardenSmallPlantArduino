@@ -6,7 +6,7 @@ https://www.youtube.com/watch?v=O_Q1WKCtWiA&feature=youtu.be
 
 I emailed him for some Q&A and did some adjustment for the project to be for a smaller scale that can be done in a small room.
  
-![Cilantro, green onions, Parsley, Basil](https://pbs.twimg.com/media/FX9NXy9XgAACA1p?format=jpg&name=large)
+![Cilantro, green onions, Parsley, Basil](https://media-exp1.licdn.com/dms/image/C4E22AQFHmmoBPHbC8g/feedshare-shrink_2048_1536/0/1658261723210?e=1662595200&v=beta&t=Vf_VGyvx-VvJ1glXJxOUeJTMUTl0g_DeBVxIWwQSm3o)
 
 My related Youtube videos: (in Thai)
 
