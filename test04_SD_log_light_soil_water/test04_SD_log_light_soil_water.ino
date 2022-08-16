@@ -7,7 +7,6 @@ Adafruit_seesaw ss;
 
 // A simple data logger for the Arduino analog pins
 #define LOG_INTERVAL  3*1000 // mills between entries
-//#define WAIT_TO_START    0 // Wait for serial input in setup()
 
 // the digital pins that connect to the LEDs
 #define redLEDpin 3 //LED on the logger
@@ -154,9 +153,9 @@ void loop() {
   Serial.print(",");
   delay(20);
 
-  if ((soilMoisture < wateringThreshold) && (wateredToday < 3 ) && (sunlight > 200) && (now.hour()- recent_water_h > 4 )) {
+  if ((soilMoisture < wateringThreshold) && (wateredToday < 3 ) && (sunlight > 150) && (now.hour()- recent_water_h > 4 )) {
     digitalWrite(pump,HIGH);   //turning on
-    delay(30*1000);   	     //milliseconds 
+    delay(30000);   	     //milliseconds 
     digitalWrite(pump,LOW);    //turning off
     recent_water_h = now.hour();
     //record that we're watering
