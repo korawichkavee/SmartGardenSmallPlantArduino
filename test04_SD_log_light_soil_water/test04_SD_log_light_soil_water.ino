@@ -155,7 +155,7 @@ void loop() {
 
   if ((soilMoisture < wateringThreshold) && (wateredToday < 3 ) && (sunlight > 150) && (now.hour()- recent_water_h > 4 )) {
     digitalWrite(pump,HIGH);   //turning on
-    delay(30000);   	     //milliseconds 
+    delay(60000);   	     //milliseconds 
     digitalWrite(pump,LOW);    //turning off
     recent_water_h = now.hour();
     //record that we're watering
