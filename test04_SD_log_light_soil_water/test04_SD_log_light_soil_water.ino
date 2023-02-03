@@ -1,4 +1,4 @@
-#include "SD.h" //SD card shield
+#include <SD.h>
 #include <Wire.h> //to communicate with I2C/TWI devices
 #include "RTClib.h" //Real Time Clock
 
@@ -155,7 +155,7 @@ void loop() {
 
   if ((soilMoisture < wateringThreshold) && (wateredToday < 3 ) && (sunlight > 150) && (now.hour()- recent_water_h > 4 )) {
     digitalWrite(pump,HIGH);   //turning on
-    delay(60000);   	     //milliseconds 
+    delay(60000*2);   	     //milliseconds 
     digitalWrite(pump,LOW);    //turning off
     recent_water_h = now.hour();
     //record that we're watering
